@@ -1,0 +1,7 @@
+[sqlfluff]
+dialect = tsql
+max_line_length = 140
+exclude_rules = AM04, ST06, RF02, RF04, CV05, ST05, AL07, ST09, CV11, LT14, LT09, LT02, AL03, CP01, CP02, RF06, RF05, AL08, LT01
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper

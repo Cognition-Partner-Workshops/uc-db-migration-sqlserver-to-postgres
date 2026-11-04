@@ -12,3 +12,5 @@ work/
 *.tfstate.*
 .terraform.lock.hcl
 .DS_Store
+.terraform/
+.terraform.lock.hcl

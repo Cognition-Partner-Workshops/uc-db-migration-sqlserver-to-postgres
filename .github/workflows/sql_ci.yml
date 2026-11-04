@@ -1,0 +1,142 @@
+name: sql-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  SQLSERVER_HOST: localhost
+  SQLSERVER_PORT: "1433"
+  SQLSERVER_PASSWORD: Local_Demo_Only_2026!   # throwaway CI container password, not a secret
+  PGHOST: localhost
+  PGPORT: "5432"
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: pc_insurance
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt
+      - run: make lint coverage
+      - name: terraform validate (never applied)
+        run: |
+          curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o tf.zip
+          unzip -q tf.zip -d "$HOME/bin" && echo "$HOME/bin" >> "$GITHUB_PATH"
+      - run: make tf-validate
+
+  reconcile:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Express
+          MSSQL_SA_PASSWORD: Local_Demo_Only_2026!
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Local_Demo_Only_2026!' -Q 'SELECT 1' -b"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pc_insurance
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: ODBC Driver 18 for SQL Server
+        run: |
+          # GitHub-hosted Ubuntu runners already carry the packages.microsoft.com
+          # source; only add it when it is missing.
+          if ! grep -rqs packages.microsoft.com /etc/apt/sources.list.d/; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+              | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            repo="https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod"
+            echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] $repo $(lsb_release -cs) main" \
+              | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          fi
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc
+      - run: pip install -r requirements.txt
+      - name: seed (legacy estate + synthetic data + raw copy)
+        run: make seed
+      - run: make build NS=ci
+      - run: make reconcile NS=ci
+      - run: make functional NS=ci
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconcile-report
+          path: work/reconcile/
+
+  naive-must-fail:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Express
+          MSSQL_SA_PASSWORD: Local_Demo_Only_2026!
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Local_Demo_Only_2026!' -Q 'SELECT 1' -b"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pc_insurance
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: ODBC Driver 18 for SQL Server
+        run: |
+          # GitHub-hosted Ubuntu runners already carry the packages.microsoft.com
+          # source; only add it when it is missing.
+          if ! grep -rqs packages.microsoft.com /etc/apt/sources.list.d/; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+              | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            repo="https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod"
+            echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] $repo $(lsb_release -cs) main" \
+              | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          fi
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc
+      - run: pip install -r requirements.txt
+      - name: seed (legacy estate + synthetic data + raw copy)
+        run: make seed
+      - name: reconcile-naive must FAIL, and only on the planted object
+        run: |
+          if make reconcile-naive; then
+            echo "::error::reconcile-naive passed; the planted naive conversion was not caught"
+            exit 1
+          fi
+          python - <<'PY'
+          import json, sys
+          results = json.load(open("work/reconcile/naive.json"))["results"]
+          failed = sorted(r["object"] for r in results if r["status"] == "FAIL")
+          print("failed controls:", failed)
+          sys.exit(0 if failed == ["dbo.usp_report_claims_ageing"] else 1)
+          PY

@@ -1,0 +1,51 @@
+# Local engines for the demo. PostgreSQL is published on 55432 by default so it
+# does not clash with host PostgreSQL clusters on 5432/5433.
+# Both are throwaway containers on localhost;
+# the passwords below are local-only defaults, not credentials for any
+# real system. Override them through the environment if you like.
+name: uc-db-migration-sqlserver-to-postgres
+
+services:
+  mssql:
+    # SQL Server 2022 Express: free, allowed in production, Microsoft-licensed
+    # (not open source). Express has no SQL Server Agent and a 10 GB per-DB cap.
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: uc2-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD:-Local_Demo_Only_2026!}
+    ports:
+      - "${SQLSERVER_PORT:-1433}:1433"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  postgres:
+    # Official open-source image (PostgreSQL License). Pinned to the 18.x minor
+    # that Aurora PostgreSQL also offers (see README).
+    image: postgres:18.6
+    container_name: uc2-postgres
+    environment:
+      POSTGRES_USER: ${PGUSER:-postgres}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-postgres}
+      POSTGRES_DB: ${PGDATABASE:-pc_insurance}
+    ports:
+      - "${PGPORT:-55432}:5432"
+    volumes:
+      # postgres:18 moved PGDATA under /var/lib/postgresql/18/docker;
+      # mount the parent directory, not /var/lib/postgresql/data.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:

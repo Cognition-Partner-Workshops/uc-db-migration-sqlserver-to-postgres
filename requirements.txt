@@ -1,0 +1,7 @@
+pyodbc==5.3.0
+psycopg2-binary==2.9.13
+Faker==40.44.0
+sqlfluff==4.5.0
+ruff==0.17.3
+yamllint==1.38.0
+pre-commit==4.6.2
