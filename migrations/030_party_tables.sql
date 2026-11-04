@@ -25,7 +25,7 @@ CREATE TABLE $(NS).policyholder (
     postcode varchar(12) NOT NULL,
     city varchar(100) NOT NULL,
     country_code citext NOT NULL CONSTRAINT fk_policyholder_country REFERENCES $(NS).country (country_code),
-    created_at timestamptz(3) NOT NULL DEFAULT now()
+    created_at timestamptz (3) NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_policyholder_last_name ON $(NS).policyholder (last_name, first_name);
-CREATE INDEX ix_policyholder_email ON $(NS).policyholder (email) WHERE email IS NOT NULL;
+CREATE INDEX ix_policyholder_email ON $(NS).policyholder (email) WHERE email IS NOT null;

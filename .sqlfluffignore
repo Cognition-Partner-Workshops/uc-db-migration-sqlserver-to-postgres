@@ -1,0 +1,3 @@
+# sqlfluff's T-SQL parser cannot parse NEXT VALUE FOR inside a column DEFAULT.
+# The file is still deployed and exercised by `make seed` and CI.
+source/sqlserver/schema/030_policy.sql

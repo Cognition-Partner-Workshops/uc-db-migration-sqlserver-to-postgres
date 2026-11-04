@@ -54,8 +54,17 @@ COUNTRIES = [
     ("PT", "Portugal", "EUR", 1, "0.0900"),
 ]
 COUNTRY_LOCALE = {
-    "AT": "de_AT", "BE": "nl_BE", "CH": "de_CH", "DE": "de_DE", "ES": "es_ES", "FR": "fr_FR",
-    "IE": "en_IE", "IT": "it_IT", "NL": "nl_NL", "PL": "pl_PL", "PT": "pt_PT",
+    "AT": "de_AT",
+    "BE": "nl_BE",
+    "CH": "de_CH",
+    "DE": "de_DE",
+    "ES": "es_ES",
+    "FR": "fr_FR",
+    "IE": "en_IE",
+    "IT": "it_IT",
+    "NL": "nl_NL",
+    "PL": "pl_PL",
+    "PT": "pt_PT",
 }
 COUNTRY_WEIGHTS = [6, 5, 3, 25, 12, 15, 4, 12, 10, 5, 3]
 
@@ -71,8 +80,12 @@ PRODUCTS = [
     ("SME-PROP", "SME property package", "COMMERCIAL", "0.002400", "900.0000"),
 ]
 SUM_INSURED_RANGE = {
-    "MOTOR": (8000, 60000), "HOME": (40000, 600000), "TRAVEL": (3000, 15000),
-    "LIABILITY": (1000000, 5000000), "PET": (1500, 6000), "COMMERCIAL": (250000, 2500000),
+    "MOTOR": (8000, 60000),
+    "HOME": (40000, 600000),
+    "TRAVEL": (3000, 15000),
+    "LIABILITY": (1000000, 5000000),
+    "PET": (1500, 6000),
+    "COMMERCIAL": (250000, 2500000),
 }
 COVERAGES = {
     "MOTOR": ["TPL", "FIRE", "THEFT", "GLASS", "ASSIST"],
@@ -140,8 +153,15 @@ class Generator:
         return f"{country}{self.rng.randint(10, 99)}{digits}"
 
     def ts(self, d: date, hour_lo: int = 7, hour_hi: int = 20) -> datetime:
-        return datetime(d.year, d.month, d.day, self.rng.randint(hour_lo, hour_hi), self.rng.randint(0, 59),
-                        self.rng.randint(0, 59), self.rng.randrange(0, 1000) * 1000)
+        return datetime(
+            d.year,
+            d.month,
+            d.day,
+            self.rng.randint(hour_lo, hour_hi),
+            self.rng.randint(0, 59),
+            self.rng.randint(0, 59),
+            self.rng.randrange(0, 1000) * 1000,
+        )
 
     @staticmethod
     def cet_offset(d: date) -> str:
@@ -163,8 +183,19 @@ class Generator:
             self.tables["ref.product"].append((i, code, name, lob, Decimal(rate), Decimal(minp), 1))
 
     def brokers(self) -> None:
-        suffix = {"DE": "GmbH", "AT": "GmbH", "CH": "AG", "FR": "SARL", "ES": "S.L.", "IT": "S.r.l.",
-                  "NL": "B.V.", "BE": "BV", "IE": "Ltd", "PL": "Sp. z o.o.", "PT": "Lda"}
+        suffix = {
+            "DE": "GmbH",
+            "AT": "GmbH",
+            "CH": "AG",
+            "FR": "SARL",
+            "ES": "S.L.",
+            "IT": "S.r.l.",
+            "NL": "B.V.",
+            "BE": "BV",
+            "IE": "Ltd",
+            "PL": "Sp. z o.o.",
+            "PT": "Lda",
+        }
         for i in range(1, N_BROKERS + 1):
             country = self.rng.choices([c[0] for c in COUNTRIES], COUNTRY_WEIGHTS)[0]
             fk = self.fakers[country]
@@ -222,16 +253,35 @@ class Generator:
 
     def _holder(self, hid, first, middle, last, dob, email, country) -> None:
         fk = self.fakers[country]
-        phone = None if self.rng.random() < 0.1 else f"+{self.rng.randint(30, 49)} {self.rng.randint(100, 999)} {self.rng.randint(1000000, 9999999)}"
-        created = datetime(2019, 1, 1) + timedelta(days=self.rng.randint(0, 2400), seconds=self.rng.randint(0, 86399),
-                                                   microseconds=self.rng.randrange(0, 1000) * 1000)
+        phone = (
+            None
+            if self.rng.random() < 0.1
+            else f"+{self.rng.randint(30, 49)} {self.rng.randint(100, 999)} {self.rng.randint(1000000, 9999999)}"
+        )
+        created = datetime(2019, 1, 1) + timedelta(
+            days=self.rng.randint(0, 2400), seconds=self.rng.randint(0, 86399), microseconds=self.rng.randrange(0, 1000) * 1000
+        )
         address = fk.street_address().replace("\n", ", ")[:200]
         postcode = fk.postcode()[:12]
         city = fk.city()[:100]
-        self.tables["dbo.policyholder"].append((
-            hid, self.uid(), first, middle, last, dob, email, phone, self.iban(country),
-            address, postcode, city, country, self.dto(created),
-        ))
+        self.tables["dbo.policyholder"].append(
+            (
+                hid,
+                self.uid(),
+                first,
+                middle,
+                last,
+                dob,
+                email,
+                phone,
+                self.iban(country),
+                address,
+                postcode,
+                city,
+                country,
+                self.dto(created),
+            )
+        )
         self.holder_country[hid] = country
         self.holder_dob[hid] = dob
 
@@ -250,8 +300,16 @@ class Generator:
 
     def policies_and_versions(self) -> None:
         lob_by_idx = [p[2] for p in PRODUCTS]
-        edge_inceptions = [date(2024, 2, 29), date(2025, 1, 31), date(2023, 3, 31), date(2025, 8, 31),
-                           date(2026, 1, 31), date(2024, 11, 30), date(2025, 12, 31), date(2023, 4, 30)]
+        edge_inceptions = [
+            date(2024, 2, 29),
+            date(2025, 1, 31),
+            date(2023, 3, 31),
+            date(2025, 8, 31),
+            date(2026, 1, 31),
+            date(2024, 11, 30),
+            date(2025, 12, 31),
+            date(2023, 4, 30),
+        ]
         for pid in range(1, N_POLICIES + 1):
             if pid <= len(edge_inceptions):
                 inception = edge_inceptions[pid - 1]
@@ -281,11 +339,26 @@ class Generator:
             self.versions(pol)
             self.policies.append(pol)
             created = self.ts(inception - timedelta(days=self.rng.randint(1, 30)))
-            updated = None if status in ("ACTIVE", "QUOTE") and self.rng.random() < 0.7 else self.ts(min(AS_OF, inception + timedelta(days=200)))
-            self.tables["dbo.policy"].append((
-                pid, pol.policy_number, holder, broker, product_idx + 1, status, inception,
-                add_year_minus_day(inception), freq, pol.annual_premium, "EUR", created, updated,
-            ))
+            updated = (
+                None if status in ("ACTIVE", "QUOTE") and self.rng.random() < 0.7 else self.ts(min(AS_OF, inception + timedelta(days=200)))
+            )
+            self.tables["dbo.policy"].append(
+                (
+                    pid,
+                    pol.policy_number,
+                    holder,
+                    broker,
+                    product_idx + 1,
+                    status,
+                    inception,
+                    add_year_minus_day(inception),
+                    freq,
+                    pol.annual_premium,
+                    "EUR",
+                    created,
+                    updated,
+                )
+            )
             self.coverages(pol)
 
     def versions(self, pol: Policy) -> None:
@@ -305,9 +378,18 @@ class Generator:
                     created = self.ts(min(eff, AS_OF))
                 sum_insured = (sum_insured * Decimal(self.rng.randint(95, 120)) / 100).quantize(Decimal("1"))
                 prem = self.premium_for(pol.product_idx, sum_insured)
-            rows.append([pol.policy_id, v, eff, None, sum_insured, prem,
-                         "New business" if v == 1 else self.rng.choice(["Sum insured change", "Address change", "Correction", None]),
-                         created])
+            rows.append(
+                [
+                    pol.policy_id,
+                    v,
+                    eff,
+                    None,
+                    sum_insured,
+                    prem,
+                    "New business" if v == 1 else self.rng.choice(["Sum insured change", "Address change", "Correction", None]),
+                    created,
+                ]
+            )
         for i in range(len(rows) - 1):
             nxt = rows[i + 1][2]
             rows[i][3] = nxt - timedelta(days=1) if nxt > rows[i][2] else rows[i][2]
@@ -366,8 +448,7 @@ class Generator:
                 self.tables["dbo.premium_schedule"].append((sid, pol.policy_id, n, due, amount, paid, status))
             # unallocated top-ups and refunds
             if self.rng.random() < 0.08 and pol.inception <= AS_OF:
-                self._payment(pol, None, min(AS_OF, pol.inception + timedelta(days=45)),
-                              Decimal(self.rng.randint(500, 5000)) / 100)
+                self._payment(pol, None, min(AS_OF, pol.inception + timedelta(days=45)), Decimal(self.rng.randint(500, 5000)) / 100)
 
     def _payment(self, pol: Policy, sid: int | None, due: date, amount: Decimal) -> None:
         paid_day = min(AS_OF, due + timedelta(days=self.rng.randint(-5, 10)))
@@ -419,16 +500,32 @@ class Generator:
                 status = "REOPENED"
             else:
                 status = "CLOSED"
-            desc = None if self.rng.random() < 0.1 else self.rng.choice(
-                ["Water ingress from upstairs flat", "Rear-end collision at junction", "Hail damage to roof",
-                 "Bicycle stolen from garage", "Windscreen chip", "Kitchen fire", "Dog bit a neighbour", ""])
+            desc = (
+                None
+                if self.rng.random() < 0.1
+                else self.rng.choice(
+                    [
+                        "Water ingress from upstairs flat",
+                        "Rear-end collision at junction",
+                        "Hail damage to roof",
+                        "Bicycle stolen from garage",
+                        "Windscreen chip",
+                        "Kitchen fire",
+                        "Dog bit a neighbour",
+                        "",
+                    ]
+                )
+            )
             closed_at = None
             if status in ("CLOSED", "DENIED"):
-                closed_at = min(datetime(AS_OF.year, AS_OF.month, AS_OF.day, 18, 0, 0),
-                                reported.replace(microsecond=0) + timedelta(days=self.rng.randint(10, 200)))
+                closed_at = min(
+                    datetime(AS_OF.year, AS_OF.month, AS_OF.day, 18, 0, 0),
+                    reported.replace(microsecond=0) + timedelta(days=self.rng.randint(10, 200)),
+                )
             number = f"C{500000 + cid:09d}"
-            self.tables["dbo.claim"].append((cid, number, pol.policy_id, loss, reported.replace(microsecond=0),
-                                             cause, status, desc, closed_at))
+            self.tables["dbo.claim"].append(
+                (cid, number, pol.policy_id, loss, reported.replace(microsecond=0), cause, status, desc, closed_at)
+            )
             if status == "DENIED":
                 continue
             band = self.rng.choices([(10000, 200000), (200000, 600000), (600000, 3000000)], [75, 22, 3])[0]
@@ -448,20 +545,21 @@ class Generator:
                     pay_at = reported + timedelta(days=5 + 15 * k, hours=self.rng.randint(0, 8))
                     pay_at = min(pay_at, datetime(AS_OF.year, AS_OF.month, AS_OF.day, 17, 0, 0))
                     payee = self.fakers[self.holder_country[pol.policyholder_id]].name()
-                    self.tables["dbo.claim_payment"].append((cid, rtype, pay_at, amount, payee,
-                                                             None if self.rng.random() < 0.2 else self.iban("DE")))
+                    self.tables["dbo.claim_payment"].append(
+                        (cid, rtype, pay_at, amount, payee, None if self.rng.random() < 0.2 else self.iban("DE"))
+                    )
                 if status == "CLOSED":
                     reserve = paid_total
                 set_at = (closed_at if status == "CLOSED" else reported).replace(microsecond=0)
-                self.tables["dbo.claim_reserve"].append((cid, rtype, reserve, set_at,
-                                                         "claims.close" if status == "CLOSED" else "claims.intake"))
+                self.tables["dbo.claim_reserve"].append(
+                    (cid, rtype, reserve, set_at, "claims.close" if status == "CLOSED" else "claims.intake")
+                )
 
     def audit_history(self) -> None:
         for pol in self.policies:
             if pol.status in ("LAPSED", "CANCELLED"):
                 when = datetime.combine(min(AS_OF, pol.inception + timedelta(days=120)), datetime.min.time()) + timedelta(hours=2)
-                self.tables["dbo.audit_log"].append(("policy", "STATUS", pol.policy_number, "ACTIVE", pol.status, 1,
-                                                     when, "legacy.batch"))
+                self.tables["dbo.audit_log"].append(("policy", "STATUS", pol.policy_number, "ACTIVE", pol.status, 1, when, "legacy.batch"))
 
     def generate(self) -> dict[str, list[tuple]]:
         self.reference()
@@ -479,12 +577,47 @@ COLUMNS = {
     "ref.country": ["country_code", "country_name", "currency_code", "is_eu_member", "premium_tax_rate"],
     "ref.product": ["product_id", "product_code", "product_name", "line_of_business", "base_rate", "min_premium", "is_active"],
     "dbo.broker": ["broker_id", "broker_code", "broker_name", "country_code", "commission_pct", "email", "is_active", "created_at"],
-    "dbo.policyholder": ["policyholder_id", "external_ref", "first_name", "middle_name", "last_name", "date_of_birth", "email",
-                         "phone", "iban", "address_line", "postcode", "city", "country_code", "created_at"],
-    "dbo.policy": ["policy_id", "policy_number", "policyholder_id", "broker_id", "product_id", "status", "inception_date",
-                   "expiry_date", "payment_frequency", "annual_premium", "currency_code", "created_at", "updated_at"],
-    "dbo.policy_version": ["policy_id", "version_no", "effective_from", "effective_to", "sum_insured", "annual_premium",
-                           "change_reason", "created_at"],
+    "dbo.policyholder": [
+        "policyholder_id",
+        "external_ref",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "date_of_birth",
+        "email",
+        "phone",
+        "iban",
+        "address_line",
+        "postcode",
+        "city",
+        "country_code",
+        "created_at",
+    ],
+    "dbo.policy": [
+        "policy_id",
+        "policy_number",
+        "policyholder_id",
+        "broker_id",
+        "product_id",
+        "status",
+        "inception_date",
+        "expiry_date",
+        "payment_frequency",
+        "annual_premium",
+        "currency_code",
+        "created_at",
+        "updated_at",
+    ],
+    "dbo.policy_version": [
+        "policy_id",
+        "version_no",
+        "effective_from",
+        "effective_to",
+        "sum_insured",
+        "annual_premium",
+        "change_reason",
+        "created_at",
+    ],
     "dbo.coverage": ["policy_id", "coverage_code", "limit_amount", "deductible", "premium_share"],
     "dbo.premium_schedule": ["schedule_id", "policy_id", "installment_no", "due_date", "amount_due", "paid_amount", "status"],
     "dbo.premium_payment": ["payment_ref", "policy_id", "schedule_id", "paid_at", "amount", "method", "payer_iban", "reference_text"],
@@ -511,7 +644,7 @@ def load(tables: dict[str, list[tuple]]) -> None:
             cur.execute(f"SET IDENTITY_INSERT {table} ON")
         sql = f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})"
         for i in range(0, len(rows), 2000):
-            cur.executemany(sql, rows[i:i + 2000])
+            cur.executemany(sql, rows[i : i + 2000])
         if table in IDENTITY_TABLES:
             cur.execute(f"SET IDENTITY_INSERT {table} OFF")
         print(f"  {table:24s} {len(rows):>6d} rows")

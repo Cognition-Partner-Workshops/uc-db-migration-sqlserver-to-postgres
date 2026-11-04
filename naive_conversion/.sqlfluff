@@ -1,0 +1,4 @@
+[sqlfluff]
+dialect = postgres
+max_line_length = 140
+exclude_rules = AM04, ST06, RF02, RF04, CV05, ST05, AL07, ST09, CV11, LT14, LT09

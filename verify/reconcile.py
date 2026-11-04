@@ -88,6 +88,7 @@ def fmt(row) -> str:
         if v is None:
             return "NULL"
         return str(v.normalize()) if hasattr(v, "normalize") else str(v)
+
     return "(" + ", ".join(one(v) for v in row) + ")"
 
 
@@ -105,8 +106,7 @@ class Reconciler:
         self.pg.rollback()
 
     def add(self, group: str, name: str, phase, status: str, detail: str = "", category: str = "") -> None:
-        self.results.append({"group": group, "object": name, "category": category, "phase": phase,
-                             "status": status, "detail": detail})
+        self.results.append({"group": group, "object": name, "category": category, "phase": phase, "status": status, "detail": detail})
         print(f"[{status:13s}] {group:9s} {name}" + (f" -- {detail[:160]}" if status == FAIL else ""))
 
     # ------------------------------------------------------------------ tables
@@ -114,11 +114,12 @@ class Reconciler:
         ms, pg = self.ms.cursor(), self.pg.cursor()
         for t in TABLES:
             schema, table = t.source.split(".")
-            ms.execute("SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(?) AND system_type_id <> 189 "
-                       "ORDER BY column_id", t.source)
+            ms.execute("SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(?) AND system_type_id <> 189 ORDER BY column_id", t.source)
             src_cols = [r[0] for r in ms.fetchall() if r[0] not in t.exclude]
-            pg.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = %s AND table_name = %s "
-                       "ORDER BY ordinal_position", (self.ns, t.target))
+            pg.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = %s AND table_name = %s ORDER BY ordinal_position",
+                (self.ns, t.target),
+            )
             tgt_cols = [r[0] for r in pg.fetchall()]
             missing = [c for c in src_cols if c not in tgt_cols]
             if not tgt_cols:
@@ -150,15 +151,17 @@ class Reconciler:
     def sequences(self) -> None:
         ms, pg = self.ms.cursor(), self.pg.cursor()
         for src, tgt in SEQUENCES:
-            pg.execute("SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
-                       "WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'S'", (self.ns, tgt))
+            pg.execute(
+                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'S'",
+                (self.ns, tgt),
+            )
             if not pg.fetchone():
                 self.add("sequence", src, 1, FAIL, "missing", "sequence")
                 continue
             # the target must hand out numbers above everything already loaded
             col, table = ("policy_number", "policy") if "policy" in tgt else ("claim_number", "claim")
-            pg.execute(f"SELECT last_value, (SELECT max(substr({col}::text, 2)::bigint) FROM {self.ns}.{table}) "
-                       f"FROM {self.ns}.{tgt}")
+            pg.execute(f"SELECT last_value, (SELECT max(substr({col}::text, 2)::bigint) FROM {self.ns}.{table}) FROM {self.ns}.{tgt}")
             last, mx = pg.fetchone()
             status = PASS if last >= (mx or 0) else FAIL
             self.add("sequence", src, 1, status, f"last_value {last}, max loaded {mx}", "sequence")
@@ -169,13 +172,18 @@ class Reconciler:
     def target_exists(self, c: Control) -> bool:
         cur = self.pg.cursor()
         if c.kind == "trigger":
-            cur.execute("SELECT 1 FROM pg_trigger t JOIN pg_class r ON r.oid = t.tgrelid JOIN pg_namespace n "
-                        "ON n.oid = r.relnamespace WHERE n.nspname = %s AND t.tgname = %s", (self.ns, c.target))
+            cur.execute(
+                "SELECT 1 FROM pg_trigger t JOIN pg_class r ON r.oid = t.tgrelid JOIN pg_namespace n "
+                "ON n.oid = r.relnamespace WHERE n.nspname = %s AND t.tgname = %s",
+                (self.ns, c.target),
+            )
         elif c.kind == "view":
             cur.execute("SELECT 1 FROM pg_views WHERE schemaname = %s AND viewname = %s", (self.ns, c.target))
         else:
-            cur.execute("SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace "
-                        "WHERE n.nspname = %s AND p.proname = %s", (self.ns, c.target))
+            cur.execute(
+                "SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = %s AND p.proname = %s",
+                (self.ns, c.target),
+            )
         found = cur.fetchone() is not None
         self.pg.rollback()
         return found
@@ -278,8 +286,9 @@ def write_report(path: Path, ns: str, mode: str, results: list[dict], seconds: f
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--ns", required=True)
-    parser.add_argument("--mode", choices=["full", "test"], default="full",
-                        help="test: CI mode, skips nothing but prints a one-line summary per control")
+    parser.add_argument(
+        "--mode", choices=["full", "test"], default="full", help="test: CI mode, skips nothing but prints a one-line summary per control"
+    )
     parser.add_argument("--report", default=str(REPO_ROOT / "work" / "reconcile" / "report.md"))
     args = parser.parse_args()
     ns = check_namespace(args.ns)
@@ -291,8 +300,7 @@ def main() -> None:
     rec.rules()
     write_report(Path(args.report), ns, args.mode, rec.results, time.time() - started)
     counts = Counter(r["status"] for r in rec.results)
-    print(f"\n{ns}: PASS {counts.get(PASS, 0)}, FAIL {counts.get(FAIL, 0)}, NOT CONVERTED {counts.get(NOT_CONVERTED, 0)} "
-          f"-> {args.report}")
+    print(f"\n{ns}: PASS {counts.get(PASS, 0)}, FAIL {counts.get(FAIL, 0)}, NOT CONVERTED {counts.get(NOT_CONVERTED, 0)} -> {args.report}")
     sys.exit(1 if counts.get(FAIL) else 0)
 
 

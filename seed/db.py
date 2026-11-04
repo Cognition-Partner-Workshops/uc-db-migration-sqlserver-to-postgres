@@ -28,8 +28,7 @@ def _sqlserver_host() -> str:
     host = os.getenv("SQLSERVER_HOST", "localhost")
     if host not in LOCAL_HOSTS:
         raise SystemExit(
-            f"Refusing to connect to SQL Server host {host!r}: this harness only "
-            "talks to the local demo container (see AGENTS.md)."
+            f"Refusing to connect to SQL Server host {host!r}: this harness only talks to the local demo container (see AGENTS.md)."
         )
     return host
 

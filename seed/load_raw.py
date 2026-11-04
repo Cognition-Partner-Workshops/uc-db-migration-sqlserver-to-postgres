@@ -15,9 +15,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from db import mssql_connect, pg_connect  # noqa: E402
 
 TYPE_MAP = {
-    "int": "integer", "bigint": "bigint", "smallint": "smallint", "tinyint": "smallint",
-    "bit": "boolean", "money": "numeric(19,4)", "date": "date", "uniqueidentifier": "uuid",
-    "datetimeoffset": "timestamptz", "datetime2": "timestamp", "datetime": "timestamp",
+    "int": "integer",
+    "bigint": "bigint",
+    "smallint": "smallint",
+    "tinyint": "smallint",
+    "bit": "boolean",
+    "money": "numeric(19,4)",
+    "date": "date",
+    "uniqueidentifier": "uuid",
+    "datetimeoffset": "timestamptz",
+    "datetime2": "timestamp",
+    "datetime": "timestamp",
 }
 SKIP_TYPES = {"timestamp"}  # ROWVERSION: instance-specific, not data
 
@@ -62,9 +70,7 @@ def main() -> None:
     for (schema, table), cols in tables.items():
         target = f"raw.{schema}_{table}"
         pcur.execute(f"CREATE TABLE {target} ({', '.join(f'{c} {t}' for c, t in cols)})")
-        select_list = ", ".join(
-            f"CONVERT(varchar(40), [{c}], 127)" if t in ("timestamptz", "timestamp") else f"[{c}]" for c, t in cols
-        )
+        select_list = ", ".join(f"CONVERT(varchar(40), [{c}], 127)" if t in ("timestamptz", "timestamp") else f"[{c}]" for c, t in cols)
         cur.execute(f"SELECT {select_list} FROM [{schema}].[{table}]")
         buf = io.StringIO()
         for row in cur.fetchall():

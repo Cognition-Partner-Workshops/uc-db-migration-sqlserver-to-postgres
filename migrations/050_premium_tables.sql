@@ -18,7 +18,7 @@ CREATE TABLE $(NS).premium_payment (
     payment_ref uuid NOT NULL DEFAULT gen_random_uuid() CONSTRAINT uq_payment_ref UNIQUE,
     policy_id integer NOT NULL CONSTRAINT fk_payment_policy REFERENCES $(NS).policy (policy_id),
     schedule_id integer CONSTRAINT fk_payment_schedule REFERENCES $(NS).premium_schedule (schedule_id),
-    paid_at timestamptz(3) NOT NULL,
+    paid_at timestamptz (3) NOT NULL,
     amount numeric(19, 4) NOT NULL,
     method citext NOT NULL CONSTRAINT ck_payment_method CHECK (method IN ('SEPA_DD', 'CARD', 'TRANSFER')),
     payer_iban varchar(34),
