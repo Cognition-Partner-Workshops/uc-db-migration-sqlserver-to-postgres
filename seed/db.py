@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 import re
+import struct
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
@@ -45,7 +47,18 @@ def mssql_connect(database: str | None = None, *, reader: bool = False, autocomm
         f"SERVER={host},{port};DATABASE={database or SQLSERVER_DB};"
         f"UID={user};PWD={password};TrustServerCertificate=yes;Encrypt=no"
     )
-    return pyodbc.connect(conn_str, autocommit=autocommit)
+    conn = pyodbc.connect(conn_str, autocommit=autocommit)
+    conn.add_output_converter(-155, _datetimeoffset)
+    return conn
+
+
+def _datetimeoffset(raw: bytes | None):
+    """pyodbc has no native DATETIMEOFFSET type (SQL type -155)."""
+    if raw is None:
+        return None
+    y, mo, d, h, mi, s, ns, oh, om = struct.unpack("<6hI2h", raw)
+    tz = timezone(timedelta(hours=oh, minutes=om))
+    return datetime(y, mo, d, h, mi, s, ns // 1000, tzinfo=tz)
 
 
 def pg_connect(autocommit: bool = False):
