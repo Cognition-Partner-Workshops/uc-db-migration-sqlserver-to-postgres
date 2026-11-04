@@ -453,9 +453,9 @@ CONTROLS += [
         state=[
             (
                 "SELECT TOP (1) c.policy_id, c.loss_date, c.cause_code, c.status, r.reserve_type, r.amount FROM dbo.claim c "
-                "JOIN dbo.claim_reserve r ON r.claim_id = c.claim_id ORDER BY c.claim_id DESC",
+                "JOIN dbo.claim_reserve r ON r.claim_id = c.claim_id ORDER BY c.claim_id DESC, r.reserve_type",
                 "SELECT c.policy_id, c.loss_date, c.cause_code::text, c.status::text, r.reserve_type::text, r.amount FROM {ns}.claim c "
-                "JOIN {ns}.claim_reserve r ON r.claim_id = c.claim_id ORDER BY c.claim_id DESC LIMIT 1",
+                "JOIN {ns}.claim_reserve r ON r.claim_id = c.claim_id ORDER BY c.claim_id DESC, r.reserve_type LIMIT 1",
             )
         ],
     ),

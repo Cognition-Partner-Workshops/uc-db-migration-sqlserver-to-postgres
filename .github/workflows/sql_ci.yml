@@ -62,12 +62,17 @@ jobs:
           python-version: "3.10"
       - name: ODBC Driver 18 for SQL Server
         run: |
-          if ! odbcinst -q -d | grep -q "ODBC Driver 18"; then
-            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
-            echo "deb [signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
+          # GitHub-hosted Ubuntu runners already carry the packages.microsoft.com
+          # source; only add it when it is missing.
+          if ! grep -rqs packages.microsoft.com /etc/apt/sources.list.d/; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+              | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            repo="https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod"
+            echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] $repo $(lsb_release -cs) main" \
               | sudo tee /etc/apt/sources.list.d/mssql-release.list
-            sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
           fi
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc
       - run: pip install -r requirements.txt
       - name: seed (legacy estate + synthetic data + raw copy)
         run: make seed
@@ -108,12 +113,17 @@ jobs:
           python-version: "3.10"
       - name: ODBC Driver 18 for SQL Server
         run: |
-          if ! odbcinst -q -d | grep -q "ODBC Driver 18"; then
-            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
-            echo "deb [signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
+          # GitHub-hosted Ubuntu runners already carry the packages.microsoft.com
+          # source; only add it when it is missing.
+          if ! grep -rqs packages.microsoft.com /etc/apt/sources.list.d/; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+              | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            repo="https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod"
+            echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] $repo $(lsb_release -cs) main" \
               | sudo tee /etc/apt/sources.list.d/mssql-release.list
-            sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
           fi
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc
       - run: pip install -r requirements.txt
       - name: seed (legacy estate + synthetic data + raw copy)
         run: make seed
