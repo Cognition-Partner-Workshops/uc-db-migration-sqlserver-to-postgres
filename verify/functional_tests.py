@@ -82,7 +82,7 @@ STEPS = [
         "SELECT * FROM {ns}.usp_claim_open(p_policy_number=>%s, p_loss_date=>%s, p_reported_at=>%s, p_cause_code=>%s, "
         "p_description=>%s, p_initial_estimate=>%s)",
         lambda ctx: [ctx["policy_number"].lower(), "2026-05-31", "2026-06-01 07:45:00", "Collision", "", "4250.5050"],
-        (0, 1),
+        (0, 1, 2),
     ),
     (
         "close claim",
@@ -90,7 +90,7 @@ STEPS = [
         "EXEC dbo.usp_claim_close @claim_id=?, @as_of=?",
         "SELECT * FROM {ns}.usp_claim_close(p_claim_id=>%s, p_as_of=>%s)",
         lambda ctx: [ctx["claim_id"], AS_OF],
-        (0,),
+        (0, 1),
     ),
 ]
 
